@@ -1,2 +1,3 @@
 # Artifact Tracking Configuration
-REPOS=" js-event-bus"
+REPOS=""
+REPOS="js-event-bus"
