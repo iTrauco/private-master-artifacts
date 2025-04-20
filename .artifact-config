@@ -1,2 +1,2 @@
 # Artifact Tracking Configuration
-REPOS=" js-event-bus obs-visual-overlay visual_anchoring_framework"
+REPOS="js-event-bus visual_anchoring_framework 01-visual-overlay"
