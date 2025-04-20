@@ -1,0 +1,41 @@
+```
+obs-hardware-overlay/
+├── package.json
+├── electron-app.js
+├── server/
+│   ├── index.js                # Main server entry point
+│   ├── routes/                 # Route definitions
+│   │   ├── hardware.js         # Hardware metrics API routes
+│   │   └── pages.js            # Page routes (5 routes)
+│   └── services/               # Backend services
+│       ├── cpuService.js
+│       ├── gpuService.js
+│       └── memoryService.js
+└── public/
+    ├── index.html              # Main HTML entry
+    ├── css/
+    │   ├── main.css            # Global styles
+    │   └── components/         # Component-specific styles
+    ├── js/
+    │   ├── app.js              # Application initialization
+    │   ├── router.js           # Handle client-side routing
+    │   ├── services/
+    │   │   ├── ServiceProvider.js # Service container
+    │   │   └── DataService.js  # Data fetching service
+    │   └── components/
+    │       ├── BaseComponent.js # Base component class
+    │       ├── Navigation.js    # Navigation component
+    │       ├── HardwarePanel.js # Hardware stats panel
+    │       └── pages/           # Page components
+    │           ├── DashboardPage.js
+    │           ├── CpuPage.js
+    │           ├── GpuPage.js
+    │           ├── SystemPage.js
+    │           └── SettingsPage.js
+    └── pages/                  # Simple HTML pages for 5 routes
+        ├── dashboard.html
+        ├── cpu.html
+        ├── gpu.html
+        ├── system.html
+        └── settings.html
+```
