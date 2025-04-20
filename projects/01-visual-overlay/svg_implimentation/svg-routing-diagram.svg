@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 550">
+  <!-- Background -->
+  <rect width="800" height="550" fill="#f8f9fa" />
+  
+  <!-- Title -->
+  <text x="400" y="40" font-family="Arial" font-size="24" text-anchor="middle" fill="#333">SVG API Routes and Testing Diagram</text>
+  
+  <!-- Production Environment -->
+  <rect x="50" y="80" width="300" height="200" rx="10" fill="#e6f7ff" stroke="#1890ff" stroke-width="2" />
+  <text x="200" y="110" font-family="Arial" font-size="18" text-anchor="middle" fill="#333">Production Environment</text>
+  
+  <!-- Server.js Box -->
+  <rect x="75" y="130" width="250" height="60" rx="5" fill="#ffffff" stroke="#1890ff" stroke-width="1" />
+  <text x="200" y="155" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">server.js</text>
+  <text x="200" y="175" font-family="Arial" font-size="12" text-anchor="middle" fill="#666">app.use('/api/svg', svgRoutes);</text>
+  
+  <!-- SVG Routes Box -->
+  <rect x="75" y="200" width="250" height="60" rx="5" fill="#ffffff" stroke="#1890ff" stroke-width="1" />
+  <text x="200" y="225" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">routes/api/svg.js</text>
+  <text x="200" y="245" font-family="Arial" font-size="12" text-anchor="middle" fill="#666">router.get('/list', async (req, res) => {...});</text>
+  
+  <!-- URL Mapping -->
+  <rect x="75" y="310" width="250" height="40" rx="5" fill="#d9f7be" stroke="#52c41a" stroke-width="1" />
+  <text x="200" y="335" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">Final URL: /api/svg/list</text>
+  
+  <!-- Arrow -->
+  <line x1="200" y1="260" x2="200" y2="310" stroke="#52c41a" stroke-width="2" />
+  <polygon points="200,310 195,300 205,300" fill="#52c41a" />
+  
+  <!-- Test Environment -->
+  <rect x="450" y="80" width="300" height="380" rx="10" fill="#fff2e8" stroke="#fa8c16" stroke-width="2" />
+  <text x="600" y="110" font-family="Arial" font-size="18" text-anchor="middle" fill="#333">Test Environment</text>
+  
+  <!-- Original Test (Incorrect) -->
+  <rect x="475" y="130" width="250" height="150" rx="5" fill="#ffffff" stroke="#fa8c16" stroke-width="1" />
+  <text x="600" y="155" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">Original Test (Failed)</text>
+  <text x="600" y="180" font-family="Arial" font-size="12" text-anchor="middle" fill="#666">app.use('/api/svg', svgRoutes);</text>
+  <text x="600" y="200" font-family="Arial" font-size="12" text-anchor="middle" fill="#666">request(app).get('/list');</text>
+  <rect x="535" y="220" width="130" height="25" rx="5" fill="#ffccc7" stroke="#ff4d4f" stroke-width="1" />
+  <text x="600" y="237" font-family="Arial" font-size="12" text-anchor="middle" fill="#333">404 Error</text>
+  <text x="600" y="260" font-family="Arial" font-size="10" text-anchor="middle" fill="#ff4d4f">Test looks for /list but route is at /api/svg/list</text>
+  
+  <!-- Fixed Test -->
+  <rect x="475" y="300" width="250" height="140" rx="5" fill="#ffffff" stroke="#fa8c16" stroke-width="1" />
+  <text x="600" y="325" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">Fixed Test (Passes)</text>
+  <text x="600" y="350" font-family="Arial" font-size="12" text-anchor="middle" fill="#666">app.use('/', svgRoutes);</text>
+  <text x="600" y="370" font-family="Arial" font-size="12" text-anchor="middle" fill="#666">request(app).get('/list');</text>
+  <rect x="535" y="390" width="130" height="25" rx="5" fill="#d9f7be" stroke="#52c41a" stroke-width="1" />
+  <text x="600" y="407" font-family="Arial" font-size="12" text-anchor="middle" fill="#333">200 Success</text>
+  
+  <!-- Arrow -->
+  <line x1="600" y1="280" x2="600" y2="300" stroke="#fa8c16" stroke-width="2" />
+  <polygon points="600,300 595,290 605,290" fill="#fa8c16" />
+  
+  <!-- Explanation -->
+  <rect x="50" y="480" width="700" height="50" rx="5" fill="#f0f0f0" stroke="#d9d9d9" stroke-width="1" />
+  <text x="400" y="505" font-family="Arial" font-size="12" text-anchor="middle" fill="#333">In production, the route is mounted at '/api/svg' and the endpoint is '/list', making the full path '/api/svg/list'.</text>
+  <text x="400" y="520" font-family="Arial" font-size="12" text-anchor="middle" fill="#333">In our test, we mount the route at '/' so we can test the '/list' endpoint directly without the '/api/svg' prefix.</text>
+</svg>
