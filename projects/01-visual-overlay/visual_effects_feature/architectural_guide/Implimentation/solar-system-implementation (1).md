@@ -31,6 +31,13 @@ public/
 │       ├── components/
 │       │   └── SolarSystemView.js
 │       ├── models/
+    const basisAText = this.scene.getObjectByName('basisAText');
+    const basisBText = this.scene.getObjectByName('basisBText');
+    
+    if (basisAText && basisBText) {
+        // Update basis labels
+        const basisA = entanglementState.measurementBasis === 'random' ? 'Z' : entanglementState.measurementBasis.toUpperCase();
+        const basisB = entanglementState.measurementBasis === 'random' ? 'X' : 
 │       │   └── solarsystem-settings.js
 │       └── utils/
 │           └── solar-objects.js

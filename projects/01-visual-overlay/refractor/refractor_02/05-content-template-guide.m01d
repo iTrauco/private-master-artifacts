@@ -1,0 +1,1645 @@
+# Content Template System Implementation Guide
+
+## Overview
+
+This guide outlines the implementation of a Content Template System that will standardize the structure and presentation of content across the application. This system will provide reusable templates for common content patterns, ensuring consistency and reducing development time.
+
+## Key Features
+
+- Reusable content templates for various data types
+- Dynamic content rendering
+- Cached template loading
+- Content placeholder handling
+- Content state management
+- Responsive layouts
+
+## Implementation Steps
+
+### 1. Create Template Engine Core
+
+Create a new file `public/js/templates/template-engine.js`:
+
+```javascript
+/**
+ * Template Engine
+ * Handles loading, caching, and rendering of HTML templates
+ */
+const TemplateEngine = {
+  /**
+   * Template cache
+   */
+  _cache: {},
+  
+  /**
+   * Load a template from a URL
+   * @param {string} templateUrl - URL of template to load
+   * @returns {Promise<string>} Template content
+   */
+  loadTemplate: async function(templateUrl) {
+    // Check cache first
+    if (this._cache[templateUrl]) {
+      return this._cache[templateUrl];
+    }
+    
+    try {
+      const response = await fetch(templateUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load template: ${response.status} ${response.statusText}`);
+      }
+      
+      const templateContent = await response.text();
+      
+      // Cache template
+      this._cache[templateUrl] = templateContent;
+      
+      return templateContent;
+    } catch (error) {
+      console.error('Error loading template:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Render a template with data
+   * @param {string} template - Template string
+   * @param {Object} data - Data to render in template
+   * @returns {string} Rendered HTML
+   */
+  renderTemplate: function(template, data = {}) {
+    // Simple template variable replacement using ${variable} syntax
+    return template.replace(/\${([^}]+)}/g, (match, variable) => {
+      // Support for nested properties with dot notation
+      const path = variable.trim().split('.');
+      let value = data;
+      
+      // Navigate the path
+      for (const key of path) {
+        if (value === undefined || value === null) {
+          return '';
+        }
+        
+        value = value[key];
+      }
+      
+      // Return empty string if undefined/null, or value as string
+      return value === undefined || value === null ? '' : value.toString();
+    });
+  },
+  
+  /**
+   * Load and render a template
+   * @param {string} templateUrl - URL of template to load
+   * @param {Object} data - Data to render in template
+   * @returns {Promise<string>} Rendered HTML
+   */
+  loadAndRender: async function(templateUrl, data = {}) {
+    const template = await this.loadTemplate(templateUrl);
+    return this.renderTemplate(template, data);
+  },
+  
+  /**
+   * Render a template to a DOM element
+   * @param {string} templateUrl - URL of template to load
+   * @param {Object} data - Data to render in template
+   * @param {string|Element} container - Container element or selector
+   * @returns {Promise<void>}
+   */
+  renderToElement: async function(templateUrl, data = {}, container) {
+    // Get container element if string selector provided
+    const containerEl = typeof container === 'string' 
+      ? document.querySelector(container) 
+      : container;
+    
+    if (!containerEl) {
+      console.error(`Template container not found: ${container}`);
+      return;
+    }
+    
+    try {
+      // Load and render template
+      const renderedHtml = await this.loadAndRender(templateUrl, data);
+      
+      // Update container
+      containerEl.innerHTML = renderedHtml;
+      
+      // Initialize any components in the container
+      this.initializeRenderedContent(containerEl);
+    } catch (error) {
+      console.error('Error rendering template:', error);
+      
+      // Show error in container
+      containerEl.innerHTML = `
+        <div class="template-error">
+          <h3>Error Loading Template</h3>
+          <p>${error.message}</p>
+        </div>
+      `;
+    }
+  },
+  
+  /**
+   * Initialize components in rendered content
+   * @param {Element} container - Container with rendered content
+   */
+  initializeRenderedContent: function(container) {
+    // Initialize panels
+    if (window.PanelManager) {
+      const panels = container.querySelectorAll('.panel');
+      panels.forEach(panel => {
+        if (panel.id) {
+          window.PanelManager.initPanel(panel.id);
+        }
+      });
+    }
+    
+    // Initialize controls
+    if (window.ControlsUtils) {
+      window.ControlsUtils.initializeControls();
+    }
+    
+    // Dispatch content loaded event
+    const event = new CustomEvent('template:content-loaded', {
+      detail: { container }
+    });
+    document.dispatchEvent(event);
+  },
+  
+  /**
+   * Pre-load templates for faster rendering
+   * @param {Array<string>} templateUrls - Array of template URLs to load
+   * @returns {Promise<void>}
+   */
+  preloadTemplates: async function(templateUrls) {
+    const loadPromises = templateUrls.map(url => this.loadTemplate(url));
+    await Promise.all(loadPromises);
+    console.log(`Pre-loaded ${templateUrls.length} templates`);
+  },
+  
+  /**
+   * Clear template cache
+   * @param {string} [templateUrl] - Specific template URL to clear, or all if omitted
+   */
+  clearCache: function(templateUrl) {
+    if (templateUrl) {
+      delete this._cache[templateUrl];
+    } else {
+      this._cache = {};
+    }
+  }
+};
+
+// Make template engine globally available
+window.TemplateEngine = TemplateEngine;
+```
+
+### 2. Create Content Template Manager
+
+Create a new file `public/js/templates/content-templates.js`:
+
+```javascript
+/**
+ * Content Template Manager
+ * Provides standard content templates and rendering utilities
+ */
+const ContentTemplates = {
+  /**
+   * Base path for templates
+   */
+  basePath: '/templates',
+  
+  /**
+   * Available template types
+   */
+  types: {
+    // Data display templates
+    TABLE: 'data/table-template.html',
+    CARD: 'data/card-template.html',
+    LIST: 'data/list-template.html',
+    DETAIL: 'data/detail-template.html',
+    STATS: 'data/stats-template.html',
+    
+    // Panel templates
+    PANEL_BASIC: 'panels/basic-panel.html',
+    PANEL_TABS: 'panels/tabbed-panel.html',
+    PANEL_COLLAPSIBLE: 'panels/collapsible-panel.html',
+    
+    // Status templates
+    LOADING: 'status/loading-template.html',
+    EMPTY: 'status/empty-template.html',
+    ERROR: 'status/error-template.html',
+    
+    // Layout templates
+    LAYOUT_STANDARD: 'layouts/standard-layout.html',
+    LAYOUT_DASHBOARD: 'layouts/dashboard-layout.html',
+    LAYOUT_SPLIT: 'layouts/split-layout.html'
+  },
+  
+  /**
+   * Initialize content templates
+   */
+  init: function() {
+    // Preload common templates
+    this.preloadCommonTemplates();
+    
+    // Set up template helpers
+    this._setupTemplateHelpers();
+  },
+  
+  /**
+   * Preload commonly used templates
+   */
+  preloadCommonTemplates: function() {
+    const commonTemplates = [
+      this.getTemplatePath(this.types.LOADING),
+      this.getTemplatePath(this.types.EMPTY),
+      this.getTemplatePath(this.types.ERROR),
+      this.getTemplatePath(this.types.PANEL_BASIC)
+    ];
+    
+    TemplateEngine.preloadTemplates(commonTemplates);
+  },
+  
+  /**
+   * Get full template path
+   * @param {string} templateName - Template name or path
+   * @returns {string} Full template path
+   */
+  getTemplatePath: function(templateName) {
+    // If it's already a full path, return as is
+    if (templateName.startsWith('/') || templateName.includes('://')) {
+      return templateName;
+    }
+    
+    return `${this.basePath}/${templateName}`;
+  },
+  
+  /**
+   * Render a data table
+   * @param {Object} options - Table options
+   * @returns {Promise<string>} Rendered HTML
+   */
+  renderTable: async function(options = {}) {
+    const defaultOptions = {
+      headers: [],
+      rows: [],
+      caption: '',
+      cssClass: '',
+      emptyMessage: 'No data available',
+      container: null
+    };
+    
+    const settings = {...defaultOptions, ...options};
+    const templatePath = this.getTemplatePath(this.types.TABLE);
+    
+    // If container provided, render directly to it
+    if (settings.container) {
+      await TemplateEngine.renderToElement(templatePath, settings, settings.container);
+      return '';
+    }
+    
+    // Otherwise return rendered HTML
+    return TemplateEngine.loadAndRender(templatePath, settings);
+  },
+  
+  /**
+   * Render a card
+   * @param {Object} options - Card options
+   * @returns {Promise<string>} Rendered HTML
+   */
+  renderCard: async function(options = {}) {
+    const defaultOptions = {
+      title: '',
+      content: '',
+      footer: '',
+      cssClass: '',
+      icon: '',
+      container: null
+    };
+    
+    const settings = {...defaultOptions, ...options};
+    const templatePath = this.getTemplatePath(this.types.CARD);
+    
+    // If container provided, render directly to it
+    if (settings.container) {
+      await TemplateEngine.renderToElement(templatePath, settings, settings.container);
+      return '';
+    }
+    
+    // Otherwise return rendered HTML
+    return TemplateEngine.loadAndRender(templatePath, settings);
+  },
+  
+  /**
+   * Render a list
+   * @param {Object} options - List options
+   * @returns {Promise<string>} Rendered HTML
+   */
+  renderList: async function(options = {}) {
+    const defaultOptions = {
+      items: [],
+      ordered: false,
+      cssClass: '',
+      emptyMessage: 'No items available',
+      container: null
+    };
+    
+    const settings = {...defaultOptions, ...options};
+    const templatePath = this.getTemplatePath(this.types.LIST);
+    
+    // If container provided, render directly to it
+    if (settings.container) {
+      await TemplateEngine.renderToElement(templatePath, settings, settings.container);
+      return '';
+    }
+    
+    // Otherwise return rendered HTML
+    return TemplateEngine.loadAndRender(templatePath, settings);
+  },
+  
+  /**
+   * Render details view
+   * @param {Object} options - Details options
+   * @returns {Promise<string>} Rendered HTML
+   */
+  renderDetail: async function(options = {}) {
+    const defaultOptions = {
+      title: '',
+      sections: [],
+      cssClass: '',
+      container: null
+    };
+    
+    const settings = {...defaultOptions, ...options};
+    const templatePath = this.getTemplatePath(this.types.DETAIL);
+    
+    // If container provided, render directly to it
+    if (settings.container) {
+      await TemplateEngine.renderToElement(templatePath, settings, settings.container);
+      return '';
+    }
+    
+    // Otherwise return rendered HTML
+    return TemplateEngine.loadAndRender(templatePath, settings);
+  },
+  
+  /**
+   * Render statistics view
+   * @param {Object} options - Stats options
+   * @returns {Promise<string>} Rendered HTML
+   */
+  renderStats: async function(options = {}) {
+    const defaultOptions = {
+      title: '',
+      stats: [],
+      layout: 'grid', // grid, inline, cards
+      cssClass: '',
+      container: null
+    };
+    
+    const settings = {...defaultOptions, ...options};
+    const templatePath = this.getTemplatePath(this.types.STATS);
+    
+    // If container provided, render directly to it
+    if (settings.container) {
+      await TemplateEngine.renderToElement(templatePath, settings, settings.container);
+      return '';
+    }
+    
+    // Otherwise return rendered HTML
+    return TemplateEngine.loadAndRender(templatePath, settings);
+  },
+  
+  /**
+   * Render a panel
+   * @param {Object} options - Panel options
+   * @returns {Promise<string>} Rendered HTML
+   */
+  renderPanel: async function(options = {}) {
+    const defaultOptions = {
+      id: `panel-${Math.random().toString(36).substr(2, 9)}`,
+      title: '',
+      content: '',
+      footer: '',
+      cssClass: '',
+      collapsible: true,
+      hasTabs: false,
+      tabs: [],
+      container: null
+    };
+    
+    const settings = {...defaultOptions, ...options};
+    
+    // Choose appropriate template based on options
+    let templateType = this.types.PANEL_BASIC;
+    
+    if (settings.hasTabs && settings.tabs.length > 0) {
+      templateType = this.types.PANEL_TABS;
+    } else if (settings.collapsible) {
+      templateType = this.types.PANEL_COLLAPSIBLE;
+    }
+    
+    const templatePath = this.getTemplatePath(templateType);
+    
+    // If container provided, render directly to it
+    if (settings.container) {
+      await TemplateEngine.renderToElement(templatePath, settings, settings.container);
+      
+      // Initialize panel if PanelManager is available
+      if (window.PanelManager && settings.id) {
+        window.PanelManager.initPanel(settings.id);
+      }
+      
+      return '';
+    }
+    
+    // Otherwise return rendered HTML
+    return TemplateEngine.loadAndRender(templatePath, settings);
+  },
+  
+  /**
+   * Render a loading indicator
+   * @param {Object} options - Loading options
+   * @returns {Promise<string>} Rendered HTML
+   */
+  renderLoading: async function(options = {}) {
+    const defaultOptions = {
+      message: 'Loading...',
+      size: 'medium', // small, medium, large
+      cssClass: '',
+      container: null
+    };
+    
+    const settings = {...defaultOptions, ...options};
+    const templatePath = this.getTemplatePath(this.types.LOADING);
+    
+    // If container provided, render directly to it
+    if (settings.container) {
+      await TemplateEngine.renderToElement(templatePath, settings, settings.container);
+      return '';
+    }
+    
+    // Otherwise return rendered HTML
+    return TemplateEngine.loadAndRender(templatePath, settings);
+  },
+  
+  /**
+   * Render an empty state
+   * @param {Object} options - Empty state options
+   * @returns {Promise<string>} Rendered HTML
+   */
+  renderEmpty: async function(options = {}) {
+    const defaultOptions = {
+      message: 'No data available',
+      icon: '',
+      cssClass: '',
+      actionText: '',
+      actionUrl: '',
+      container: null
+    };
+    
+    const settings = {...defaultOptions, ...options};
+    const templatePath = this.getTemplatePath(this.types.EMPTY);
+    
+    // If container provided, render directly to it
+    if (settings.container) {
+      await TemplateEngine.renderToElement(templatePath, settings, settings.container);
+      return '';
+    }
+    
+    // Otherwise return rendered HTML
+    return TemplateEngine.loadAndRender(templatePath, settings);
+  },
+  
+  /**
+   * Render an error message
+   * @param {Object} options - Error options
+   * @returns {Promise<string>} Rendered HTML
+   */
+  renderError: async function(options = {}) {
+    const defaultOptions = {
+      title: 'Error',
+      message: 'An error occurred',
+      details: '',
+      cssClass: '',
+      container: null
+    };
+    
+    const settings = {...defaultOptions, ...options};
+    const templatePath = this.getTemplatePath(this.types.ERROR);
+    
+    // If container provided, render directly to it
+    if (settings.container) {
+      await TemplateEngine.renderToElement(templatePath, settings, settings.container);
+      return '';
+    }
+    
+    // Otherwise return rendered HTML
+    return TemplateEngine.loadAndRender(templatePath, settings);
+  },
+  
+  /**
+   * Setup helpers for working with templates
+   * @private
+   */
+  _setupTemplateHelpers: function() {
+    // Add event listener for content loading
+    document.addEventListener('template:content-loaded', (event) => {
+      const { container } = event.detail;
+      
+      // Find placeholder elements and initialize them
+      this._initializePlaceholders(container);
+    });
+  },
+  
+  /**
+   * Initialize placeholders in rendered content
+   * @param {Element} container - Container with rendered content
+   * @private
+   */
+  _initializePlaceholders: function(container) {
+    // Find all placeholder elements
+    const placeholders = container.querySelectorAll('[data-template]');
+    
+    placeholders.forEach(async (placeholder) => {
+      const templateType = placeholder.getAttribute('data-template');
+      const dataSource = placeholder.getAttribute('data-source');
+      
+      // Skip if no template type
+      if (!templateType) return;
+      
+      // Show loading state
+      placeholder.innerHTML = '<div class="template-loading">Loading...</div>';
+      
+      try {
+        // Load data if specified
+        let data = {};
+        
+        if (dataSource) {
+          data = await this._loadData(dataSource);
+        }
+        
+        // Get template options from data attributes
+        const options = this._getOptionsFromAttributes(placeholder);
+        
+        // Merge data and options
+        const templateOptions = {...options, ...data, container: placeholder};
+        
+        // Render appropriate template
+        switch (templateType) {
+          case 'table':
+            await this.renderTable(templateOptions);
+            break;
+          case 'card':
+            await this.renderCard(templateOptions);
+            break;
+          case 'list':
+            await this.renderList(templateOptions);
+            break;
+          case 'detail':
+            await this.renderDetail(templateOptions);
+            break;
+          case 'stats':
+            await this.renderStats(templateOptions);
+            break;
+          case 'panel':
+            await this.renderPanel(templateOptions);
+            break;
+          default:
+            console.warn(`Unknown template type: ${templateType}`);
+            placeholder.innerHTML = `<div class="template-error">Unknown template type: ${templateType}</div>`;
+        }
+      } catch (error) {
+        console.error(`Error rendering template ${templateType}:`, error);
+        placeholder.innerHTML = `
+          <div class="template-error">
+            <h3>Error Loading Template</h3>
+            <p>${error.message}</p>
+          </div>
+        `;
+      }
+    });
+  },
+  
+  /**
+   * Load data from source
+   * @param {string} source - Data source URL or identifier
+   * @returns {Promise<Object>} Loaded data
+   * @private
+   */
+  _loadData: async function(source) {
+    // Check if it's a URL
+    if (source.startsWith('/') || source.includes('://')) {
+      try {
+        const response = await fetch(source);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to load data: ${response.status} ${response.statusText}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error('Error loading data:', error);
+        throw error;
+      }
+    }
+    
+    // Otherwise check if it's an identifier for cached data
+    if (window.AppData && window.AppData[source]) {
+      return window.AppData[source];
+    }
+    
+    throw new Error(`Data source not found: ${source}`);
+  },
+  
+  /**
+   * Extract template options from element attributes
+   * @param {Element} element - Element with data attributes
+   * @returns {Object} Template options
+   * @private
+   */
+  _getOptionsFromAttributes: function(element) {
+    const options = {};
+    
+    // Get all data attributes
+    Array.from(element.attributes).forEach(attr => {
+      // Check if it's a data attribute (excluding data-template and data-source)
+      if (attr.name.startsWith('data-') && 
+          attr.name !== 'data-template' && 
+          attr.name !== 'data-source') {
+        
+        // Convert data-attribute-name to camelCase (attributeName)
+        const key = attr.name.substring(5).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+        
+        // Try to parse as JSON if it looks like an object or array
+        if (attr.value.startsWith('{') || attr.value.startsWith('[')) {
+          try {
+            options[key] = JSON.parse(attr.value);
+          } catch (e) {
+            options[key] = attr.value;
+          }
+        } else {
+          options[key] = attr.value;
+        }
+      }
+    });
+    
+    return options;
+  }
+};
+
+// Initialize content templates when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  ContentTemplates.init();
+});
+
+// Make content templates globally available
+window.ContentTemplates = ContentTemplates;
+```
+
+### 3. Create Template HTML Files
+
+Create a directory structure for templates:
+
+```
+public/
+└── templates/
+    ├── data/
+    │   ├── table-template.html
+    │   ├── card-template.html
+    │   ├── list-template.html
+    │   ├── detail-template.html
+    │   └── stats-template.html
+    ├── panels/
+    │   ├── basic-panel.html
+    │   ├── tabbed-panel.html
+    │   └── collapsible-panel.html
+    ├── status/
+    │   ├── loading-template.html
+    │   ├── empty-template.html
+    │   └── error-template.html
+    └── layouts/
+        ├── standard-layout.html
+        ├── dashboard-layout.html
+        └── split-layout.html
+```
+
+Example template files:
+
+#### 1. Table Template (`data/table-template.html`)
+
+```html
+<div class="table-container ${cssClass}">
+  ${caption ? `<h3 class="table-caption">${caption}</h3>` : ''}
+  
+  ${rows.length > 0 ? `
+    <table class="data-table">
+      <thead>
+        <tr>
+          ${headers.map(header => `<th>${header}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(row => `
+          <tr>
+            ${row.map(cell => `<td>${cell}</td>`).join('')}
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  ` : `
+    <div class="empty-state">
+      <p>${emptyMessage}</p>
+    </div>
+  `}
+</div>
+```
+
+#### 2. Card Template (`data/card-template.html`)
+
+```html
+<div class="card ${cssClass}">
+  <div class="card-header">
+    ${icon ? `<div class="card-icon">${icon}</div>` : ''}
+    <h3 class="card-title">${title}</h3>
+  </div>
+  
+  <div class="card-body">
+    ${content}
+  </div>
+  
+  ${footer ? `
+    <div class="card-footer">
+      ${footer}
+    </div>
+  ` : ''}
+</div>
+```
+
+#### 3. Basic Panel Template (`panels/basic-panel.html`)
+
+```html
+<div id="${id}" class="panel ${cssClass}">
+  <div class="panel-title">${title}</div>
+  
+  <div class="panel-content">
+    ${content}
+  </div>
+  
+  ${footer ? `
+    <div class="panel-footer">
+      ${footer}
+    </div>
+  ` : ''}
+</div>
+```
+
+#### 4. Loading Template (`status/loading-template.html`)
+
+```html
+<div class="loading-container ${cssClass} loading-${size}">
+  <div class="loading-spinner"></div>
+  <p class="loading-message">${message}</p>
+</div>
+```
+
+#### 5. Error Template (`status/error-template.html`)
+
+```html
+<div class="error-container ${cssClass}">
+  <div class="error-icon">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-7v2h2v-2h-2zm0-8v6h2V7h-2z" fill="currentColor"/>
+    </svg>
+  </div>
+  <h3 class="error-title">${title}</h3>
+  <p class="error-message">${message}</p>
+  ${details ? `<div class="error-details">${details}</div>` : ''}
+</div>
+```
+
+### 4. Create Template CSS Styles
+
+Create a new file `public/css/components/templates.css`:
+
+```css
+/* Base template styles */
+.template-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  color: var(--control-text-disabled);
+}
+
+.template-error {
+  padding: 16px;
+  background-color: rgba(223, 71, 89, 0.1);
+  border-left: 4px solid var(--danger-color);
+  color: var(--danger-color);
+  margin: 8px 0;
+}
+
+/* Table template styles */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.table-caption {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.data-table th,
+.data-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--control-border);
+}
+
+.data-table th {
+  background-color: var(--control-bg);
+  font-weight: 500;
+}
+
+.data-table tr:hover td {
+  background-color: var(--control-bg-hover);
+}
+
+/* Card template styles */
+.card {
+  background-color: var(--control-bg);
+  border-radius: 4px;
+  border: 1px solid var(--control-border);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--control-border);
+}
+
+.card-icon {
+  margin-right: 12px;
+  color: var(--primary-color);
+}
+
+.card-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.card-body {
+  padding: 16px;
+}
+
+.card-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--control-border);
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+body.dark-theme .card-footer {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* List template styles */
+.list-container {
+  margin-bottom: 16px;
+}
+
+.list-container ul,
+.list-container ol {
+  margin: 0;
+  padding-left: 24px;
+}
+
+.list-container li {
+  padding: 4px 0;
+}
+
+/* Stats template styles */
+.stats-container {
+  margin-bottom: 16px;
+}
+
+.stats-title {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.stats-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.stat-item {
+  padding: 12px;
+  border-radius: 4px;
+  background-color: var(--control-bg);
+  border: 1px solid var(--control-border);
+}
+
+.stat-item-inline {
+  display: inline-flex;
+  align-items: baseline;
+  margin-right: 16px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: var(--control-text-disabled);
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.stat-item-inline .stat-label {
+  margin-right: 8px;
+  margin-bottom: 0;
+}
+
+.stat-item-inline .stat-value {
+  font-size: 18px;
+}
+
+/* Loading template styles */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: var(--primary-color);
+  animation: spin 1s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-small .loading-spinner {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+.loading-large .loading-spinner {
+  width: 48px;
+  height: 48px;
+  border-width: 4px;
+}
+
+.loading-message {
+  margin: 0;
+  font-size: 14px;
+  color: var(--control-text-disabled);
+}
+
+/* Empty state styles */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  text-align: center;
+  color: var(--control-text-disabled);
+}
+
+.empty-icon {
+  font-size: 36px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-action {
+  margin-top: 16px;
+}
+
+/* Error template styles */
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  text-align: center;
+  background-color: rgba(223, 71, 89, 0.05);
+  border-radius: 4px;
+}
+
+.error-icon {
+  color: var(--danger-color);
+  font-size: 32px;
+  margin-bottom: 16px;
+}
+
+.error-title {
+  margin: 0 0 8px;
+  color: var(--danger-color);
+}
+
+.error-message {
+  margin: 0 0 16px;
+  max-width: 600px;
+}
+
+.error-details {
+  padding: 8px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  font-family: monospace;
+  white-space: pre-wrap;
+  font-size: 12px;
+  width: 100%;
+  max-width: 600px;
+  text-align: left;
+  overflow-x: auto;
+}
+
+body.dark-theme .error-details {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Layout templates */
+.layout-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.layout-dashboard {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: auto;
+  gap: 16px;
+}
+
+@media (max-width: 1200px) {
+  .layout-dashboard {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .layout-dashboard {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .layout-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .layout-dashboard {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats-grid,
+  .stats-cards {
+    grid-template-columns: 1fr;
+  }
+}
+```
+
+### 5. Create Template Initialization
+
+Update `public/js/app.js` to initialize the template system:
+
+```javascript
+/**
+ * Main Application Initialization
+ */
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('Initializing application...');
+  
+  // Initialize application state
+  if (window.AppState) {
+    AppState.init();
+  }
+  
+  // Initialize panel manager
+  if (window.PanelManager) {
+    PanelManager.initializePanels();
+  }
+  
+  // Initialize content templates
+  if (window.ContentTemplates) {
+    ContentTemplates.init();
+  }
+  
+  console.log('Application initialized');
+});
+```
+
+### 6. Create Global Data Store for Templates
+
+Create a new file `public/js/data/app-data.js` to manage data for templates:
+
+```javascript
+/**
+ * Application Data Store
+ * Provides centralized data storage for templates
+ */
+const AppData = {
+  /**
+   * Store for cached data
+   */
+  _store: {},
+  
+  /**
+   * Get data by key
+   * @param {string} key - Data key
+   * @returns {*} Data value or undefined if not found
+   */
+  get: function(key) {
+    return this._store[key];
+  },
+  
+  /**
+   * Set data value
+   * @param {string} key - Data key
+   * @param {*} value - Data value
+   */
+  set: function(key, value) {
+    this._store[key] = value;
+    
+    // Notify listeners if any
+    if (this._listeners[key]) {
+      this._listeners[key].forEach(callback => callback(value));
+    }
+  },
+  
+  /**
+   * Store for data listeners
+   */
+  _listeners: {},
+  
+  /**
+   * Listen for data changes
+   * @param {string} key - Data key to watch
+   * @param {Function} callback - Function to call when data changes
+   * @returns {Function} Unsubscribe function
+   */
+  listen: function(key, callback) {
+    if (!this._listeners[key]) {
+      this._listeners[key] = [];
+    }
+    
+    this._listeners[key].push(callback);
+    
+    // Call immediately with current value
+    callback(this.get(key));
+    
+    // Return unsubscribe function
+    return () => {
+      this._listeners[key] = this._listeners[key].filter(cb => cb !== callback);
+    };
+  },
+  
+  /**
+   * Fetch data from an API and store it
+   * @param {string} key - Data key to store result
+   * @param {string} url - API URL to fetch from
+   * @param {Object} options - Fetch options
+   * @returns {Promise<*>} Fetched data
+   */
+  fetchAndStore: async function(key, url, options = {}) {
+    try {
+      const response = await fetch(url, options);
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Store data
+      this.set(key, data);
+      
+      return data;
+    } catch (error) {
+      console.error(`Error fetching data for ${key}:`, error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Clear data by key or all data
+   * @param {string} [key] - Specific data key to clear or all if omitted
+   */
+  clear: function(key) {
+    if (key) {
+      delete this._store[key];
+    } else {
+      this._store = {};
+    }
+  }
+};
+
+// Make app data globally available
+window.AppData = AppData;
+```
+
+## Using the Content Template System
+
+### 1. Declarative Templates
+
+Use data attributes to declaratively include templates in HTML:
+
+```html
+<!-- Declarative table template -->
+<div data-template="table" 
+     data-caption="CPU Stats" 
+     data-empty-message="No CPU data available"
+     data-source="/api/stats/cpu"></div>
+
+<!-- Declarative card template -->
+<div data-template="card"
+     data-title="System Status"
+     data-css-class="status-card"
+     data-content="<p>All systems operational</p>"></div>
+
+<!-- Declarative panel template -->
+<div data-template="panel"
+     data-id="system-panel"
+     data-title="System Information"
+     data-collapsible="true"
+     data-source="/api/system/info"></div>
+```
+
+### 2. JavaScript Templates
+
+Use the JavaScript API for dynamic template creation:
+
+```javascript
+// Create a data table
+async function loadGpuStats() {
+  try {
+    // Show loading state
+    await ContentTemplates.renderLoading({
+      container: '#gpu-panel-content'
+    });
+    
+    // Fetch data
+    const data = await fetch('/api/stats/gpu').then(res => res.json());
+    
+    // Transform data for table
+    const tableOptions = {
+      headers: ['GPU', 'Utilization', 'Memory', 'Temperature'],
+      rows: data.gpus.map(gpu => [
+        gpu.name,
+        `${gpu.utilization}%`,
+        `${gpu.memoryUsed}MB / ${gpu.memoryTotal}MB`,
+        `${gpu.temperature}°C`
+      ]),
+      caption: 'GPU Statistics',
+      container: '#gpu-panel-content'
+    };
+    
+    // Render table
+    await ContentTemplates.renderTable(tableOptions);
+  } catch (error) {
+    console.error('Error loading GPU stats:', error);
+    
+    // Show error
+    await ContentTemplates.renderError({
+      title: 'Error Loading GPU Stats',
+      message: 'Failed to load GPU statistics',
+      details: error.message,
+      container: '#gpu-panel-content'
+    });
+  }
+}
+
+// Create a statistics display
+async function loadSystemStats() {
+  try {
+    const data = await fetch('/api/stats/system').then(res => res.json());
+    
+    // Create stats display
+    await ContentTemplates.renderStats({
+      title: 'System Overview',
+      stats: [
+        { label: 'CPU Usage', value: `${data.cpuUsage}%` },
+        { label: 'Memory', value: `${data.memoryUsed}GB / ${data.memoryTotal}GB` },
+        { label: 'Disk', value: `${data.diskUsed}GB / ${data.diskTotal}GB` },
+        { label: 'Uptime', value: data.uptime }
+      ],
+      layout: 'grid',
+      container: '#system-stats-container'
+    });
+  } catch (error) {
+    console.error('Error loading system stats:', error);
+  }
+}
+
+// Create a panel with tabs
+async function createStatusPanel() {
+  const panelOptions = {
+    id: 'status-panel',
+    title: 'System Status',
+    hasTabs: true,
+    tabs: [
+      { id: 'overview', label: 'Overview', content: '<div id="overview-content"></div>' },
+      { id: 'alerts', label: 'Alerts', content: '<div id="alerts-content"></div>' },
+      { id: 'logs', label: 'Logs', content: '<div id="logs-content"></div>' }
+    ],
+    container: '#panel-container'
+  };
+  
+  await ContentTemplates.renderPanel(panelOptions);
+  
+  // Load content for first tab
+  await ContentTemplates.renderCard({
+    title: 'System Health',
+    content: '<p>All systems operational</p>',
+    container: '#overview-content'
+  });
+}
+```
+
+### 3. Combined with State Management
+
+Integrate templates with the state management system:
+
+```javascript
+// Create a component that reacts to state changes
+function initializeMetricsDisplay() {
+  // Subscribe to state changes
+  StateManager.subscribe('data.selectedGpuId', async (gpuId) => {
+    if (!gpuId) return;
+    
+    // Show loading state
+    await ContentTemplates.renderLoading({
+      container: '#gpu-details'
+    });
+    
+    try {
+      // Fetch details for selected GPU
+      const data = await fetch(`/api/gpu/${gpuId}`).then(res => res.json());
+      
+      // Store in app data
+      AppData.set('currentGpu', data);
+      
+      // Render detail view
+      await ContentTemplates.renderDetail({
+        title: data.name,
+        sections: [
+          {
+            title: 'Performance',
+            items: [
+              { label: 'Utilization', value: `${data.utilization}%` },
+              { label: 'Clock Speed', value: `${data.clockSpeed} MHz` },
+              { label: 'Temperature', value: `${data.temperature}°C` }
+            ]
+          },
+          {
+            title: 'Memory',
+            items: [
+              { label: 'Used', value: `${data.memoryUsed} MB` },
+              { label: 'Total', value: `${data.memoryTotal} MB` },
+              { label: 'Utilization', value: `${data.memoryUtilization}%` }
+            ]
+          }
+        ],
+        container: '#gpu-details'
+      });
+    } catch (error) {
+      console.error('Error loading GPU details:', error);
+      
+      await ContentTemplates.renderError({
+        title: 'Error',
+        message: 'Failed to load GPU details',
+        container: '#gpu-details'
+      });
+    }
+  });
+}
+```
+
+## Testing
+
+### 1. Unit Tests for Template Engine
+
+Create a test file at `test/unit/templates/template-engine.test.js`:
+
+```javascript
+describe('Template Engine', () => {
+  beforeEach(() => {
+    // Reset template cache
+    TemplateEngine._cache = {};
+    
+    // Mock fetch
+    global.fetch = jest.fn();
+  });
+  
+  it('should render template with variables', () => {
+    const template = '<div class="user">${name}, ${age}</div>';
+    const data = { name: 'John', age: 30 };
+    
+    const result = TemplateEngine.renderTemplate(template, data);
+    
+    expect(result).toBe('<div class="user">John, 30</div>');
+  });
+  
+  it('should handle nested properties', () => {
+    const template = '<div>${user.name}, ${user.profile.age}</div>';
+    const data = { 
+      user: { 
+        name: 'Jane', 
+        profile: { age: 25 } 
+      } 
+    };
+    
+    const result = TemplateEngine.renderTemplate(template, data);
+    
+    expect(result).toBe('<div>Jane, 25</div>');
+  });
+  
+  it('should handle undefined or null values', () => {
+    const template = 'Name: ${name}, Age: ${age}, City: ${city}';
+    const data = { name: 'Alice', age: null };
+    
+    const result = TemplateEngine.renderTemplate(template, data);
+    
+    expect(result).toBe('Name: Alice, Age: , City: ');
+  });
+  
+  it('should load template from URL', async () => {
+    const templateUrl = '/templates/test-template.html';
+    const templateContent = '<div>${message}</div>';
+    
+    // Mock fetch response
+    global.fetch.mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(templateContent)
+    });
+    
+    const template = await TemplateEngine.loadTemplate(templateUrl);
+    
+    expect(template).toBe(templateContent);
+    expect(global.fetch).toHaveBeenCalledWith(templateUrl);
+  });
+  
+  it('should cache loaded templates', async () => {
+    const templateUrl = '/templates/cache-test.html';
+    const templateContent = '<div>${message}</div>';
+    
+    // Mock fetch response
+    global.fetch.mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(templateContent)
+    });
+    
+    // Load template first time
+    await TemplateEngine.loadTemplate(templateUrl);
+    
+    // Load again
+    const cachedTemplate = await TemplateEngine.loadTemplate(templateUrl);
+    
+    expect(cachedTemplate).toBe(templateContent);
+    expect(global.fetch).toHaveBeenCalledTimes(1); // Fetch called only once
+  });
+});
+```
+
+### 2. Integration Tests
+
+Create a test file at `test/integration/templates-integration.test.js`:
+
+```javascript
+describe('Content Templates Integration', () => {
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <div class="container">
+        <div id="table-container"></div>
+        <div id="card-container"></div>
+        <div id="declarative-container" data-template="table" data-source="testData"></div>
+      </div>
+    `;
+    
+    // Mock fetch
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([])
+    });
+    
+    // Mock template engine
+    window.TemplateEngine = {
+      loadTemplate: jest.fn().mockResolvedValue('<div>${message}</div>'),
+      renderTemplate: jest.fn().mockReturnValue('<div>Rendered</div>'),
+      loadAndRender: jest.fn().mockResolvedValue('<div>Loaded and Rendered</div>'),
+      renderToElement: jest.fn(),
+      initializeRenderedContent: jest.fn()
+    };
+    
+    // Mock app data
+    window.AppData = {
+      testData: { headers: ['Name'], rows: [['Test']] },
+      get: function(key) { return this[key]; }
+    };
+    
+    // Initialize content templates
+    ContentTemplates.init();
+  });
+  
+  it('should render a table template', async () => {
+    await ContentTemplates.renderTable({
+      headers: ['Name', 'Age'],
+      rows: [['John', '30'], ['Jane', '25']],
+      container: '#table-container'
+    });
+    
+    expect(TemplateEngine.renderToElement).toHaveBeenCalled();
+    expect(TemplateEngine.renderToElement.mock.calls[0][0]).toContain('table-template.html');
+    expect(TemplateEngine.renderToElement.mock.calls[0][1].headers).toEqual(['Name', 'Age']);
+  });
+  
+  it('should render a card template', async () => {
+    await ContentTemplates.renderCard({
+      title: 'Test Card',
+      content: '<p>Card content</p>',
+      container: '#card-container'
+    });
+    
+    expect(TemplateEngine.renderToElement).toHaveBeenCalled();
+    expect(TemplateEngine.renderToElement.mock.calls[0][0]).toContain('card-template.html');
+    expect(TemplateEngine.renderToElement.mock.calls[0][1].title).toBe('Test Card');
+  });
+  
+  it('should handle declarative templates', async () => {
+    // Trigger content loaded event to initialize placeholders
+    document.dispatchEvent(new CustomEvent('template:content-loaded', {
+      detail: { container: document.body }
+    }));
+    
+    // Wait for async operations
+    await new Promise(resolve => setTimeout(resolve, 0));
+    
+    expect(TemplateEngine.renderToElement).toHaveBeenCalled();
+    
+    // Check that it used data from AppData
+    const lastCall = TemplateEngine.renderToElement.mock.calls[0];
+    expect(lastCall[1].headers).toEqual(['Name']);
+  });
+});
+```
+
+## Next Steps
+
+After implementing the Content Template System along with the Panel Component System, State Management Service, and Controls Standardization, you will have a comprehensive, modular, and maintainable frontend architecture. 
+
+The final step is to integrate everything with the Shared Navigation Component, which will provide consistent navigation across all pages of the application.
+
+Key benefits of the Content Template System:
+
+1. Standardized content structures across all pages
+2. Reduced code duplication for common UI patterns
+3. Declarative or programmatic usage for maximum flexibility
+4. Integration with state management for reactive UIs
+5. Clear separation between data and presentation
+6. Improved maintainability with centralized template definition
+7. Support for loading/error states and empty state handling
