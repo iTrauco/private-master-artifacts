@@ -1,0 +1,4 @@
+<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <polygon points="150,50 250,200 50,200" fill="#32b464" stroke="#2c86d2" stroke-width="10" />
+  <text x="150" y="165" font-size="60" text-anchor="middle" fill="white">Q3</text>
+</svg>
