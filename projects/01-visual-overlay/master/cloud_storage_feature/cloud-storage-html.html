@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Cloud Storage - OBS Hardware Overlay</title>
+  
+  <!-- Base styles -->
+  <link rel="stylesheet" href="../../css/base/reset.css">
+  <link rel="stylesheet" href="../../css/base/global.css">
+  
+  <!-- Navigation styles -->
+  <link rel="stylesheet" href="../../css/navigation/main-nav.css">
+  <link rel="stylesheet" href="../../css/navigation/controls.css">
+  
+  <!-- Cloud Storage-specific styles -->
+  <link rel="stylesheet" href="../../css/cloud-storage/base.css">
+  <link rel="stylesheet" href="../../css/cloud-storage/panels.css">
+  <link rel="stylesheet" href="../../css/cloud-storage/controls.css">
+</head>
+<body>
+  <!-- Shared Navigation Container -->
+  <div id="nav-container"></div>
+  
+  <div class="container">
+    <div class="close-btn" onclick="toggleNavMenu()">≡</div>
+    
+    <!-- Bucket Panel -->
+    <div id="cs-bucket-panel" class="cs-panel cs-bucket-panel">
+      <div class="panel-title">
+        Cloud Storage Buckets
+        <span id="data-source-indicator" class="data-source-indicator">Loading...</span>
+      </div>
+      <div id="bucket-list" class="list-container">
+        <div class="empty-state">No buckets loaded</div>
+      </div>
+      <button id="load-buckets-btn" class="action-button">Load Buckets</button>
+      <div class="panel-footer">
+        <span id="last-refreshed" class="refresh-timestamp">Not yet updated</span>
+      </div>
+      <button class="refresh-btn" title="Refresh data">
+        <i class="fas fa-sync"></i>
+      </button>
+    </div>
+
+    <!-- Files Panel -->
+    <div id="cs-files-panel" class="cs-panel cs-files-panel">
+      <div class="panel-title">Cloud Storage Files</div>
+      <div id="files-chart-container" class="chart-container">
+        <!-- Chart will be rendered here -->
+      </div>
+      <div class="controls-container">
+        <input type="file" id="file-upload" class="file-input" style="display: none;">
+        <button id="upload-file-btn" class="action-button">Upload File</button>
+      </div>
+      <div id="files-container" class="files-container">
+        <div class="empty-state">Select a bucket to view files</div>
+      </div>
+      <div class="panel-footer">
+        <span id="files-last-refreshed" class="refresh-timestamp">Not yet updated</span>
+      </div>
+      <button class="refresh-btn" title="Refresh data">
+        <i class="fas fa-sync"></i>
+      </button>
+    </div>
+
+    <!-- Stats Panel -->
+    <div id="cs-stats-panel" class="cs-panel cs-stats-panel">
+      <div class="panel-title">Storage Stats</div>
+      <div id="stats-container" class="stats-container">
+        <div class="empty-state">Select a bucket to view stats</div>
+      </div>
+      <div class="panel-footer">
+        <span id="stats-last-refreshed" class="refresh-timestamp">Not yet updated</span>
+      </div>
+      <button class="refresh-btn" title="Refresh data">
+        <i class="fas fa-sync"></i>
+      </button>
+    </div>
+
+    <!-- Settings Panel -->
+    <div id="cs-settings-panel" class="cs-panel cs-settings-panel">
+      <div class="panel-title">
+        Settings
+        <button class="refresh-btn" title="Reset to defaults">
+          <i class="fas fa-undo"></i>
+        </button>
+      </div>
+      
+      <div class="settings-container">
+        <!-- Settings panel content -->
+        <div class="setting-item">
+          <label for="refresh-interval">Auto-refresh interval (seconds):</label>
+          <input type="range" id="refresh-interval" min="10" max="120" value="30" step="10">
+          <span id="refresh-interval-value">30</span>
+        </div>
+        
+        <div class="setting-item">
+          <label class="checkbox-label">
+            <input type="checkbox" id="use-real-data">
+            Use real Cloud Storage data
+          </label>
+        </div>
+
+        <div class="section-header">Service Account Status</div>
+        <div class="service-account-info">
+          <div class="setting-item">
+            <label>Status:</label>
+            <span id="service-account-status" class="status-indicator">Unknown</span>
+          </div>
+          <div class="setting-item">
+            <label>Key Path:</label>
+            <span id="key-path" class="info-value">Not configured</span>
+          </div>
+        </div>
+      </div>
+      
+      <button id="apply-settings" class="action-button">Apply Settings</button>
+    </div>
+  </div>
+
+  <!-- Hardware Controls -->
+  <div class="hardware-controls">
+    <button id="show-all-btn">Show All</button>
+    <button id="hide-all-btn">Hide All</button>
+    <button id="show-buckets-btn">Buckets Only</button>
+    <button id="show-files-btn">Files Only</button>
+    <button id="show-stats-btn">Stats Only</button>
+    <button id="show-settings-btn">Settings</button>
+    <button id="toggle-controls-btn">≡</button>
+  </div>
+  <div id="show-controls-btn" style="display: none;">≡</div>
+
+  <!-- Shared Navigation Script -->
+  <script src="../../js/components/navigation.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const navContainer = document.getElementById('nav-container');
+      createNavigationMenu(navContainer, getActivePageId());
+      initNavMenuState();
+    });
+  </script>
+
+  <!-- Cloud Storage Scripts -->
+  <script src="../../js/cloud-storage/services/cloud-storage-service.js"></script>
+  <script src="../../js/cloud-storage/utils/chart-utils.js"></script>
+  <script src="../../js/cloud-storage/controllers/bucket-controller.js"></script>
+  <script src="../../js/cloud-storage/controllers/files-controller.js"></script>
+  <script src="../../js/cloud-storage/controllers/stats-controller.js"></script>
+  <script src="../../js/cloud-storage/controllers/index.js"></script>
+</body>
+</html>

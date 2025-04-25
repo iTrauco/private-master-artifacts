@@ -1,0 +1,391 @@
+/* Cloud Storage base styles */
+.container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px;
+}
+
+.cs-panel {
+  background-color: rgba(0, 0, 0, 0.7);
+  border-radius: 5px;
+  overflow: hidden;
+  min-height: 200px;
+  flex: 1 1 300px;
+}
+
+.panel-title {
+  font-size: 16px;
+  font-weight: bold;
+  padding: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+.cs-bucket-panel, .cs-files-panel, .cs-stats-panel, .cs-settings-panel {
+  margin-bottom: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.data-source-indicator {
+  font-size: 12px;
+  padding: 3px 6px;
+  border-radius: 3px;
+  margin-left: 8px;
+  display: inline-block;
+}
+
+.data-source-indicator.mock-data {
+  background-color: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+}
+
+.data-source-indicator.real-data {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.panel-footer {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #aaa;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.refresh-timestamp {
+  font-style: italic;
+}
+
+/* Bucket panel styles */
+.cs-bucket-panel {
+  background-color: rgba(25, 118, 210, 0.1);
+}
+
+.cs-bucket-panel .panel-title {
+  background-color: rgba(25, 118, 210, 0.2);
+  color: #90caf9;
+}
+
+.list-container {
+  padding: 10px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.bucket-item {
+  padding: 8px 10px;
+  margin-bottom: 5px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.bucket-item:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.bucket-item.selected {
+  background-color: rgba(25, 118, 210, 0.3);
+  border-left: 3px solid #2196f3;
+}
+
+/* Files panel styles */
+.cs-files-panel {
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+.cs-files-panel .panel-title {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #a5d6a7;
+}
+
+.chart-container {
+  padding: 10px;
+  margin-bottom: 5px;
+  min-height: 100px;
+}
+
+.chart-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chart-cell {
+  flex: 1 1 calc(50% - 5px);
+  min-width: 200px;
+}
+
+.controls-container {
+  padding: 0 10px;
+}
+
+.files-container {
+  padding: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.file-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.file-table th,
+.file-table td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.file-table th {
+  background-color: rgba(0, 0, 0, 0.2);
+  color: #a5d6a7;
+}
+
+.directory-row {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.directory-name {
+  font-weight: bold;
+  color: #90caf9;
+}
+
+.file-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.file-action-btn {
+  background: none;
+  border: none;
+  color: #ccc;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 3px;
+  transition: color 0.2s;
+}
+
+.file-action-btn:hover {
+  color: white;
+}
+
+.file-action-btn.download:hover {
+  color: #4caf50;
+}
+
+.file-action-btn.delete:hover {
+  color: #f44336;
+}
+
+/* Stats panel styles */
+.cs-stats-panel {
+  background-color: rgba(156, 39, 176, 0.1);
+}
+
+.cs-stats-panel .panel-title {
+  background-color: rgba(156, 39, 176, 0.2);
+  color: #ce93d8;
+}
+
+.stats-container {
+  padding: 10px;
+}
+
+.stats-summary {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.file-types-distribution, 
+.upload-activity {
+  margin-bottom: 20px;
+}
+
+.file-types-distribution h3,
+.upload-activity h3 {
+  font-size: 14px;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.stats-table th,
+.stats-table td {
+  padding: 6px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stats-table th {
+  color: #ce93d8;
+}
+
+/* Settings panel styles */
+.cs-settings-panel {
+  background-color: rgba(69, 90, 100, 0.1);
+  display: none; /* Hidden by default */
+}
+
+.cs-settings-panel .panel-title {
+  background-color: rgba(69, 90, 100, 0.2);
+  color: #b0bec5;
+}
+
+.settings-container {
+  padding: 10px;
+}
+
+.setting-item {
+  margin-bottom: 15px;
+}
+
+.setting-item label {
+  display: block;
+  margin-bottom: 5px;
+  color: #ddd;
+}
+
+.section-header {
+  margin: 20px 0 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #b0bec5;
+  font-weight: bold;
+}
+
+.service-account-info {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  padding: 10px;
+  margin-bottom: 15px;
+}
+
+.status-indicator {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.status-indicator.success {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.status-indicator.error {
+  background-color: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+}
+
+.info-value {
+  color: #aaa;
+  font-family: monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+/* Common Styles */
+.action-button {
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.action-button:hover {
+  background-color: #1976d2;
+}
+
+.refresh-btn {
+  position: absolute;
+  top: 9px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.refresh-btn:hover {
+  color: white;
+}
+
+.refresh-btn i {
+  font-size: 14px;
+}
+
+.loading-state,
+.empty-state,
+.error-state {
+  padding: 20px;
+  text-align: center;
+  color: #888;
+}
+
+.loading-state {
+  font-style: italic;
+  animation: pulse 2s infinite;
+}
+
+.error-state {
+  color: #f44336;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+/* File upload styling */
+.file-input {
+  display: none;
+}
+
+/* Responsive layout */
+@media (max-width: 768px) {
+  .cs-panel {
+    flex-basis: 100%;
+  }
+  
+  .stat-item {
+    flex: 1;
+  }
+  
+  .chart-cell {
+    flex-basis: 100%;
+  }
+}
