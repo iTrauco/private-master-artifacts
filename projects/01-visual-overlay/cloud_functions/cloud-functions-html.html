@@ -1,0 +1,148 @@
+<!-- Path: /public/pages/cloud-functions/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Cloud Functions - OBS Hardware Overlay</title>
+  
+  <!-- Base styles -->
+  <link rel="stylesheet" href="../../css/base/reset.css">
+  <link rel="stylesheet" href="../../css/base/global.css">
+  
+  <!-- Navigation styles -->
+  <link rel="stylesheet" href="../../css/navigation/main-nav.css">
+  <link rel="stylesheet" href="../../css/navigation/controls.css">
+  
+  <!-- Cloud Functions-specific styles -->
+  <link rel="stylesheet" href="../../css/cloud-functions/base.css">
+  <link rel="stylesheet" href="../../css/cloud-functions/panels.css">
+  <link rel="stylesheet" href="../../css/cloud-functions/controls.css">
+</head>
+<body>
+  <!-- Shared Navigation Container -->
+  <div id="nav-container"></div>
+  
+  <div class="container">
+    <div class="close-btn" onclick="toggleNavMenu()">≡</div>
+    
+    <!-- Functions Panel -->
+    <div id="cf-functions-panel" class="cf-panel cf-functions-panel">
+      <div class="panel-title">
+        Cloud Functions
+        <span id="data-source-indicator" class="data-source-indicator">Loading...</span>
+      </div>
+      <div id="functions-list" class="list-container">
+        <div class="empty-state">No functions loaded</div>
+      </div>
+      <button id="load-functions-btn" class="action-button">Load Functions</button>
+      <div class="panel-footer">
+        <span id="last-refreshed" class="refresh-timestamp">Not yet updated</span>
+      </div>
+      <button class="refresh-btn" title="Refresh data">
+        <i class="fas fa-sync"></i>
+      </button>
+    </div>
+
+    <!-- Logs Panel -->
+    <div id="cf-logs-panel" class="cf-panel cf-logs-panel">
+      <div class="panel-title">Function Logs</div>
+      <div id="logs-chart-container" class="chart-container">
+        <!-- Chart will be rendered here -->
+      </div>
+      <div id="logs-container" class="logs-container">
+        <div class="empty-state">Select a function to view logs</div>
+      </div>
+      <div class="panel-footer">
+        <span id="logs-last-refreshed" class="refresh-timestamp">Not yet updated</span>
+      </div>
+      <button class="refresh-btn" title="Refresh data">
+        <i class="fas fa-sync"></i>
+      </button>
+    </div>
+
+    <!-- Stats Panel -->
+    <div id="cf-stats-panel" class="cf-panel cf-stats-panel">
+      <div class="panel-title">Function Stats</div>
+      <div id="stats-container" class="stats-container">
+        <div class="empty-state">Select a function to view stats</div>
+      </div>
+      <div class="panel-footer">
+        <span id="stats-last-refreshed" class="refresh-timestamp">Not yet updated</span>
+      </div>
+      <button class="refresh-btn" title="Refresh data">
+        <i class="fas fa-sync"></i>
+      </button>
+    </div>
+
+    <!-- Settings Panel -->
+    <div id="cf-settings-panel" class="cf-panel cf-settings-panel">
+      <div class="panel-title">
+        Settings
+        <button class="refresh-btn" title="Reset to defaults">
+          <i class="fas fa-undo"></i>
+        </button>
+      </div>
+      
+      <div class="settings-container">
+        <!-- Settings panel content -->
+        <div class="setting-item">
+          <label for="refresh-interval">Auto-refresh interval (seconds):</label>
+          <input type="range" id="refresh-interval" min="10" max="120" value="30" step="10">
+          <span id="refresh-interval-value">30</span>
+        </div>
+        
+        <div class="setting-item">
+          <label class="checkbox-label">
+            <input type="checkbox" id="use-real-data">
+            Use real Cloud Functions data
+          </label>
+        </div>
+
+        <div class="section-header">Service Account Status</div>
+        <div class="service-account-info">
+          <div class="setting-item">
+            <label>Status:</label>
+            <span id="service-account-status" class="status-indicator">Unknown</span>
+          </div>
+          <div class="setting-item">
+            <label>Key Path:</label>
+            <span id="key-path" class="info-value">Not configured</span>
+          </div>
+        </div>
+      </div>
+      
+      <button id="apply-settings" class="action-button">Apply Settings</button>
+    </div>
+  </div>
+
+  <!-- Hardware Controls -->
+  <div class="hardware-controls">
+    <button id="show-all-btn">Show All</button>
+    <button id="hide-all-btn">Hide All</button>
+    <button id="show-functions-btn">Functions Only</button>
+    <button id="show-logs-btn">Logs Only</button>
+    <button id="show-stats-btn">Stats Only</button>
+    <button id="show-settings-btn">Settings</button>
+    <button id="toggle-controls-btn">≡</button>
+  </div>
+  <div id="show-controls-btn" style="display: none;">≡</div>
+
+  <!-- Shared Navigation Script -->
+  <script src="../../js/components/navigation.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const navContainer = document.getElementById('nav-container');
+      createNavigationMenu(navContainer, getActivePageId());
+      initNavMenuState();
+    });
+  </script>
+
+  <!-- Cloud Functions Scripts -->
+  <script src="../../js/cloud-functions/services/cloud-functions-service.js"></script>
+  <script src="../../js/cloud-functions/utils/chart-utils.js"></script>
+  <script src="../../js/cloud-functions/controllers/functions-controller.js"></script>
+  <script src="../../js/cloud-functions/controllers/logs-controller.js"></script>
+  <script src="../../js/cloud-functions/controllers/stats-controller.js"></script>
+  <script src="../../js/cloud-functions/controllers/index.js"></script>
+</body>
+</html>
